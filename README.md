@@ -71,34 +71,6 @@
             animation: blink 1.5s infinite;
         }
 
-        /* Audio Engine Bar */
-        .audio-bar {
-            background: #111116;
-            border: 1px dashed #333;
-            padding: 15px;
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .btn-audio {
-            background: transparent;
-            color: var(--neon-red);
-            border: 1px solid var(--neon-red);
-            padding: 10px 25px;
-            font-family: inherit;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            box-shadow: 0 0 10px rgba(255, 0, 60, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .btn-audio:hover {
-            background: var(--neon-red);
-            color: #fff;
-            box-shadow: 0 0 20px var(--neon-red);
-        }
-
         /* Detective Dossier */
         .dossier {
             display: grid;
@@ -247,12 +219,6 @@
             <div class="case-status">// AMBIENT ENGINE IDLE //</div>
         </header>
 
-        <!-- Dynamic Ambient Audio Engine -->
-        <div class="audio-bar">
-            <button class="btn-audio" onclick="toggleAtmosphere()" id="audioBtn">Initiate Eerie Audio Engine</button>
-            <p style="font-size:0.75rem; color:#555; margin-top:8px; margin-bottom:0;">Uses built-in synthesizer framework. No downloads required.</p>
-        </div>
-
         <!-- Detective Profile Section with Inline Vector Portrait -->
         <div class="dossier">
             <div class="detective-avatar">
@@ -353,80 +319,90 @@
         // Web Audio Synthesizer Engine Variables
         let audioCtx = null;
         let droneOsc = null;
-        let chordOsc = null;
+        let chordOsc1 = null;
+        let chordOsc2 = null;
+        let lfo = null;
         let filterNode = null;
         let isPlaying = false;
 
-        function toggleAtmosphere() {
-            if (isPlaying) {
-                stopMusic();
-                return;
-            }
+        // Auto-trigger audio framework on first user window interaction (bypasses browser autoplay blocks)
+        window.addEventListener('DOMContentLoaded', () => {
+            const startAtmosphere = () => {
+                if (!isPlaying) {
+                    initHorrorAudioEngine();
+                }
+                document.removeEventListener('click', startAtmosphere);
+                document.removeEventListener('keydown', startAtmosphere);
+            };
+            document.addEventListener('click', startAtmosphere);
+            document.addEventListener('keydown', startAtmosphere);
+        });
 
+        function initHorrorAudioEngine() {
             try {
-                // Initialize Web Audio API context
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 
-                // Create Low-pass Filter for an ominous, muffled basement atmosphere
+                // Lowpass filter creates an ominous, claustrophobic basement rumble
                 filterNode = audioCtx.createBiquadFilter();
                 filterNode.type = 'lowpass';
-                filterNode.frequency.setValueAtTime(280, audioCtx.currentTime);
+                filterNode.frequency.setValueAtTime(200, audioCtx.currentTime);
 
-                // 1. Deep Base Drone
+                // 1. Unstable Sub-Bass Ground Drone
                 droneOsc = audioCtx.createOscillator();
                 droneOsc.type = 'sawtooth';
-                droneOsc.frequency.setValueAtTime(55, audioCtx.currentTime); // A1 note
+                droneOsc.frequency.setValueAtTime(45.88, audioCtx.currentTime); // Deep F1 anomaly
                 
                 let droneGain = audioCtx.createGain();
-                droneGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                
+                droneGain.gain.setValueAtTime(0.25, audioCtx.currentTime);
                 droneOsc.connect(droneGain);
                 droneGain.connect(filterNode);
 
-                // 2. High Eerie Detuned Chord
-                chordOsc = audioCtx.createOscillator();
-                chordOsc.type = 'triangle';
-                chordOsc.frequency.setValueAtTime(233.08, audioCtx.currentTime); // B-flat minor vibe
-                chordOsc.detune.setValueAtTime(15, audioCtx.currentTime);
+                // 2. High Harsh Dissonant Pair (Produces unsettling structural acoustic beating)
+                chordOsc1 = audioCtx.createOscillator();
+                chordOsc1.type = 'sawtooth';
+                chordOsc1.frequency.setValueAtTime(138.59, audioCtx.currentTime); // C#3
                 
-                let chordGain = audioCtx.createGain();
-                chordGain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+                chordOsc2 = audioCtx.createOscillator();
+                chordOsc2.type = 'square';
+                chordOsc2.frequency.setValueAtTime(142.41, audioCtx.currentTime); // Distorted detuned tracking node
                 
-                chordOsc.connect(chordGain);
-                chordGain.connect(filterNode);
+                let tensionGain = audioCtx.createGain();
+                tensionGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                
+                chordOsc1.connect(tensionGain);
+                chordOsc2.connect(tensionGain);
+                tensionGain.connect(filterNode);
 
-                // Final Output
-                filterNode.connect(audioCtx.destination);
+                // 3. Low Frequency Oscillator (Simulates breathing / heavy pulsating shadow framework)
+                lfo = audioCtx.createOscillator();
+                lfo.type = 'sine';
+                lfo.frequency.setValueAtTime(0.25, audioCtx.currentTime); // 4 second atmospheric cycles
+                
+                let lfoGain = audioCtx.createGain();
+                lfoGain.gain.setValueAtTime(90, audioCtx.currentTime); // Modulates filter cutoff drastically
+                
+                lfo.connect(lfoGain);
+                lfoGain.connect(filterNode.frequency);
 
-                // Start audio generation
+                // Master Gain Control Node
+                let masterGain = audioCtx.createGain();
+                masterGain.gain.setValueAtTime(0.85, audioCtx.currentTime);
+                filterNode.connect(masterGain);
+                masterGain.connect(audioCtx.destination);
+
+                // Fire all audio generators simultaneously
                 droneOsc.start();
-                chordOsc.start();
-                
-                // Slowly modulate the filter to make it sound like breathing/creeping shadows
-                setInterval(() => {
-                    if(audioCtx && filterNode) {
-                        let wave = 250 + Math.sin(audioCtx.currentTime * 0.5) * 60;
-                        filterNode.frequency.setValueAtTime(wave, audioCtx.currentTime);
-                    }
-                }, 100);
+                chordOsc1.start();
+                chordOsc2.start();
+                lfo.start();
 
-                document.getElementById('audioBtn').innerText = "Deactivate Audio Engine";
-                document.getElementById('audioBtn').style.borderColor = "var(--terminal-green)";
-                document.getElementById('audioBtn').style.color = "var(--terminal-green)";
+                // Dynamic UI Alteration
+                document.querySelector('.case-status').innerText = "// WARNING: UNSTABLE FREQUENCY DETECTED //";
                 isPlaying = true;
 
             } catch(e) {
-                console.error("Audio engine failed init:", e);
+                console.error("Audio engine failed initialization:", e);
             }
-        }
-
-        function stopMusic() {
-            if (droneOsc) { droneOsc.stop(); droneOsc.disconnect(); }
-            if (chordOsc) { chordOsc.stop(); chordOsc.disconnect(); }
-            document.getElementById('audioBtn').innerText = "Initiate Eerie Audio Engine";
-            document.getElementById('audioBtn').style.borderColor = "var(--neon-red)";
-            document.getElementById('audioBtn').style.color = "var(--neon-red)";
-            isPlaying = false;
         }
 
         function processAccusation() {
