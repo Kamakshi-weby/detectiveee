@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRIMSON MANOR: CASE FILE #404</title>
+    <title>CRIMSON MANOR: CASE FILE! #404</title>
     <style>
         :root {
             --neon-red: #ff003c;
